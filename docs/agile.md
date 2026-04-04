@@ -152,7 +152,7 @@ Rules: imperative mood; about 72 characters; no trailing period; always `#[issue
 
 ### Title
 
-`[#<issue>] Short description`
+`type(scope): [#<issue>] Short description`
 
 ### Description template
 
