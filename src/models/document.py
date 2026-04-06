@@ -42,7 +42,7 @@ class Document(Base, TimestampMixin):
         default=DocumentStatus.PENDING,
         nullable=False,
     )
-    metadata: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    doc_metadata: Mapped[dict | None] = mapped_column("metadata", JSON, nullable=True)
 
     # Relationships
     workspace: Mapped["Workspace"] = relationship(back_populates="documents")
