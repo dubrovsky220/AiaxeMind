@@ -29,7 +29,9 @@ class Chunk(Base, TimestampMixin):
     text: Mapped[str] = mapped_column(Text, nullable=False)
     page: Mapped[int | None] = mapped_column(Integer, nullable=True)
     section_title: Mapped[str | None] = mapped_column(String(500), nullable=True)
-    chunk_index: Mapped[int] = mapped_column(Integer, nullable=False)  # Chunk number in the document
+    chunk_index: Mapped[int] = mapped_column(
+        Integer, nullable=False
+    )  # Chunk number in the document
     token_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     # Relationships

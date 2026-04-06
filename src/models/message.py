@@ -4,10 +4,11 @@ Message model for AiaxeMind.
 Represents individual messages in conversations with role and content tracking.
 """
 
+
 import enum
 import uuid
 
-from sqlalchemy import Enum, ForeignKey, Index, JSON, Text
+from sqlalchemy import JSON, Enum, ForeignKey, Index, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.models.base import Base, TimestampMixin

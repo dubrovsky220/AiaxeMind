@@ -7,7 +7,7 @@ Represents uploaded documents that are processed and chunked for RAG retrieval.
 import enum
 import uuid
 
-from sqlalchemy import Enum, ForeignKey, Index, JSON, String
+from sqlalchemy import JSON, Enum, ForeignKey, Index, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.models.base import Base, TimestampMixin
