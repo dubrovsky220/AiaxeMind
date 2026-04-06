@@ -15,4 +15,4 @@ alembic upgrade head
 
 echo "Migrations completed - starting API server"
 
-exec uvicorn src.api.main:app --host ${API_HOST} --port 8000 --reload
+exec uvicorn src.api.main:app --host ${API_HOST} --port ${API_PORT:-8000} --reload
