@@ -23,7 +23,8 @@ dependencies = [
     "langchain-core==1.2.26",
     "langchain-openai==1.1.12",
     # Document Processing (torch installed separately, see README)
-    "unstructured[pdf,docx]==0.22.16",
+    "pymupdf==1.27.2.2",
+    "python-docx==1.2.0",
     "sentence-transformers==5.3.0",
     # Vector Database
     "qdrant-client==1.17.1",

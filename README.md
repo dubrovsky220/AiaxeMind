@@ -12,7 +12,7 @@ AiaxeMind is an adaptive teaching system that uses Socratic questioning to help 
 - **Database:** PostgreSQL, Qdrant (vector DB)
 - **LLM:** OpenRouter (GPT-4o-mini)
 - **Embeddings:** sentence-transformers (BAAI/bge-small-en-v1.5)
-- **Document Processing:** unstructured.io
+- **Document Processing:** PyMuPDF (PDF), python-docx (DOCX)
 - **Package Manager:** uv
 
 ## Setup
