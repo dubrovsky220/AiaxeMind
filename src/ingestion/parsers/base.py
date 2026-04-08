@@ -79,56 +79,6 @@ class BaseParser(ABC):
     All parser implementations must inherit from this class and implement
     the parse() method. This ensures a consistent interface for parsing
     different document formats.
-    """
-
-    @abstractmethod
-    def parse(self, file_path: Path) -> ParsedDocument:
-        """
-        Parse a document and extract its content and metadata.
-
-        Args:
-            file_path: Path to the document file to parse
-
-        Returns:
-            ParsedDocument containing text, pages, metadata, and section titles
-
-        Raises:
-            UnsupportedFileTypeError: If the file type is not supported
-            CorruptedFileError: If the file is corrupted or malformed
-            FileNotFoundError: If the file does not exist
-        """
-        pass
-
-    @abstractmethod
-    def supported_extensions(self) -> set[str]:
-        """
-        Return the set of file extensions this parser supports.
-
-        Returns:
-            Set of lowercase file extensions (e.g., {'.pdf', '.docx'})
-        """
-        pass
-
-    def supports_file_type(self, file_path: Path) -> bool:
-        """
-        Check if this parser supports the given file type.
-
-        Args:
-            file_path: Path to the file to check
-
-        Returns:
-            True if this parser can handle the file, False otherwise
-        """
-        return file_path.suffix.lower() in self.supported_extensions()
-
-
-class BaseParser(ABC):
-    """
-    Abstract base class for document parsers.
-
-    All parser implementations must inherit from this class and implement
-    the parse() method. This ensures a consistent interface for parsing
-    different document formats.
 
     Example:
         class PDFParser(BaseParser):
