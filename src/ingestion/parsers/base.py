@@ -13,24 +13,23 @@ from typing import Any
 
 
 @dataclass
-class ParsedElement:
+class PageContent:
     """
-    Represents a single parsed element from a document.
-
-    Elements can be text blocks, titles, tables, etc. Each element
-    preserves its position in the document for citation purposes.
+    Content from a single page of a document.
 
     Attributes:
-        text: The text content of the element
-        element_type: Type of element (e.g., 'text', 'title', 'table')
-        page_number: Page number where this element appears (1-indexed)
-        metadata: Additional element-specific metadata
+        page_number: Page number (1-indexed)
+        text: All text content from this page
+        headings: Section headings found on this page
+        images: Images on this page (for future multi-modal support)
+        tables: Tables on this page (for future multi-modal support)
     """
 
+    page_number: int
     text: str
-    element_type: str
-    page_number: int | None = None
-    metadata: dict[str, Any] | None = None
+    headings: list[str] | None = None
+    images: list[Any] | None = None
+    tables: list[Any] | None = None
 
 
 @dataclass
@@ -39,10 +38,10 @@ class DocumentMetadata:
     Metadata extracted from a document.
 
     Attributes:
-        title: Document title (from metadata or inferred)
+        title: Document title (from metadata or inferred from filename)
         author: Document author (if available)
         page_count: Total number of pages
-        file_type: File format (e.g., 'pdf', 'docx')
+        file_type: File format (e.g., '.pdf', '.docx')
         file_size: File size in bytes
         additional: Any additional format-specific metadata
     """
@@ -60,18 +59,67 @@ class ParsedDocument:
     """
     Complete result of document parsing.
 
-    Contains all parsed elements and extracted metadata, providing
-    a unified structure for downstream processing (chunking, embedding).
-
     Attributes:
-        elements: List of parsed elements in document order
-        metadata: Document metadata
-        section_titles: List of section/heading titles found in the document
+        text: Full document text (concatenated from all pages)
+        metadata: Document metadata (title, author, page count, etc.)
+        pages: Page-by-page content with headings (for citations)
+        section_titles: All section/heading titles in document order
     """
 
-    elements: list[ParsedElement]
+    text: str
     metadata: DocumentMetadata
+    pages: list[PageContent]
     section_titles: list[str] | None = None
+
+
+class BaseParser(ABC):
+    """
+    Abstract base class for document parsers.
+
+    All parser implementations must inherit from this class and implement
+    the parse() method. This ensures a consistent interface for parsing
+    different document formats.
+    """
+
+    @abstractmethod
+    def parse(self, file_path: Path) -> ParsedDocument:
+        """
+        Parse a document and extract its content and metadata.
+
+        Args:
+            file_path: Path to the document file to parse
+
+        Returns:
+            ParsedDocument containing text, pages, metadata, and section titles
+
+        Raises:
+            UnsupportedFileTypeError: If the file type is not supported
+            CorruptedFileError: If the file is corrupted or malformed
+            FileNotFoundError: If the file does not exist
+        """
+        pass
+
+    @abstractmethod
+    def supported_extensions(self) -> set[str]:
+        """
+        Return the set of file extensions this parser supports.
+
+        Returns:
+            Set of lowercase file extensions (e.g., {'.pdf', '.docx'})
+        """
+        pass
+
+    def supports_file_type(self, file_path: Path) -> bool:
+        """
+        Check if this parser supports the given file type.
+
+        Args:
+            file_path: Path to the file to check
+
+        Returns:
+            True if this parser can handle the file, False otherwise
+        """
+        return file_path.suffix.lower() in self.supported_extensions()
 
 
 class BaseParser(ABC):
@@ -146,4 +194,3 @@ class BaseParser(ABC):
             magic number validation).
         """
         return file_path.suffix.lower() in self.supported_extensions()
-

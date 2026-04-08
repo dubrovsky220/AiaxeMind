@@ -36,6 +36,7 @@ Deliver an end-to-end path: **ingest course text → chunk → embed → store i
 
 ## Technical pointers
 
+- **Parsing (Updated 2026-04-08):** Use **PyMuPDF (fitz)** for PDF and **python-docx** for DOCX instead of unstructured.io. Reasons: 15-30x faster performance, better text quality, easier Sprint 5 image extraction. Separate parser classes (PDFParser, DOCXParser) for maintainability.
 - **Chunking:** Start with `RecursiveCharacterTextSplitter` from LangChain; document chosen parameters.
 - **Embeddings:** OpenAI `text-embedding-3-small` or open-source (e.g., `BAAI/bge-small-en-v1.5`); batch/rate-limit as needed.
 - **Citations:** Store chunk metadata (source_id, page, chunk_index) in Qdrant payload; format as `[1] Source: filename.pdf, Page: 5`.
