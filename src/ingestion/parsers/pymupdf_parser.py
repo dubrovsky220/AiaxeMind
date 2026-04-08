@@ -61,12 +61,11 @@ class PDFParser(BaseParser):
             raise UnsupportedFileTypeError(file_path=str(file_path), file_type=file_path.suffix)
 
         try:
-            doc = fitz.open(file_path)
-            pages = self._extract_pages(doc)
-            metadata = self._extract_metadata(file_path, doc)
-            section_titles = self._extract_section_titles(pages)
-            full_text = "\n\n".join(page.text for page in pages)
-            doc.close()
+            with fitz.open(file_path) as doc:
+                pages = self._extract_pages(doc)
+                metadata = self._extract_metadata(file_path, doc)
+                section_titles = self._extract_section_titles(pages)
+                full_text = "\n\n".join(page.text for page in pages)
 
             logger.info(
                 "PDF parsing completed",
@@ -154,9 +153,10 @@ class PDFParser(BaseParser):
 
                     # Improved heuristic: large font OR (medium font + bold)
                     is_potential_heading = (
-                        (size > 16 or (size > 12 and is_bold))
+                        (size >= 16 or (size > 12 and is_bold))
                         and 3 <= len(text) < 100
                         and text[0].isupper()
+                        and not text.endswith(".")
                     )
 
                     if is_potential_heading and text not in headings:
