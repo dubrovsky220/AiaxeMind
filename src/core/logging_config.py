@@ -17,10 +17,9 @@ Usage:
 
 import logging
 import sys
-from typing import Optional
 
 try:
-    from pythonjsonlogger import jsonlogger
+    from pythonjsonlogger import jsonlogger  # type: ignore[import-not-found]
 except ImportError:
     jsonlogger = None  # Fallback if package isn't installed
 

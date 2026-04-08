@@ -46,7 +46,6 @@ class ParserFactory:
 
     def _register_default_parsers(self) -> None:
         """Register default parsers."""
-        # Register UnstructuredParser for PDF and DOCX
         self.register_parser(UnstructuredParser())
 
     def register_parser(self, parser: BaseParser) -> None:
@@ -138,3 +137,105 @@ class ParserFactory:
         for parser in self._parsers:
             extensions.update(parser.supported_extensions())
         return extensions
+
+
+def main() -> None:
+    """
+    CLI tool for testing document parsing.
+
+    Usage:
+        uv run python -m src.ingestion.parsers.factory path/to/document.pdf
+        uv run python -m src.ingestion.parsers.factory tests/fixtures/documents/simple.pdf
+    """
+    import sys
+    from collections import Counter
+
+    if len(sys.argv) < 2:
+        print("Usage: uv run python -m src.ingestion.parsers.factory <file_path>")
+        print("\nExample:")
+        print(
+            "  uv run python -m src.ingestion.parsers.factory tests/fixtures/documents/simple.pdf"
+        )
+        sys.exit(1)
+
+    file_path = Path(sys.argv[1])
+
+    if not file_path.exists():
+        print(f"Error: File not found: {file_path}")
+        sys.exit(1)
+
+    print("=" * 70)
+    print(f"PARSING: {file_path.name}")
+    print("=" * 70)
+
+    try:
+        parser = UnstructuredParser(strategy="fast")
+        result = parser.parse(file_path)
+
+        # 1. Metadata
+        print("\n📄 METADATA")
+        print("-" * 70)
+        print(f"  Title:      {result.metadata.title or 'N/A'}")
+        print(f"  Pages:      {result.metadata.page_count or 'N/A'}")
+        print(f"  File Type:  {result.metadata.file_type}")
+        print(
+            f"  File Size:  {result.metadata.file_size:,} bytes"
+            if result.metadata.file_size
+            else "  File Size:  N/A"
+        )
+
+        # 2. Element statistics
+        print("\n📊 ELEMENT STATISTICS")
+        print("-" * 70)
+        print(f"  Total Elements: {len(result.elements)}")
+
+        element_types = Counter(elem.element_type for elem in result.elements)
+        print("\n  Element Types:")
+        for elem_type, count in element_types.most_common():
+            print(f"    - {elem_type}: {count}")
+
+        # 3. Section titles
+        print("\n📑 SECTION TITLES")
+        print("-" * 70)
+        if result.section_titles:
+            for i, title in enumerate(result.section_titles, 1):
+                print(f"  {i}. {title}")
+        else:
+            print("  No section titles found")
+
+        # 4. Sample elements
+        print("\n📝 SAMPLE ELEMENTS (first 5)")
+        print("-" * 70)
+        for i, elem in enumerate(result.elements[:5], 1):
+            text_preview = elem.text[:80].replace("\n", " ")
+            if len(elem.text) > 80:
+                text_preview += "..."
+            print(f"\n  Element {i}:")
+            print(f"    Type:  {elem.element_type}")
+            print(f"    Page:  {elem.page_number or 'N/A'}")
+            print(f"    Text:  {text_preview}")
+            if elem.metadata:
+                print(f"    Meta:  {list(elem.metadata.keys())}")
+
+        # 5. Full text preview
+        print("\n📖 FULL TEXT PREVIEW (first 500 chars)")
+        print("-" * 70)
+        full_text = "\n".join(elem.text for elem in result.elements)
+        print(full_text[:500])
+        if len(full_text) > 500:
+            print("\n... (truncated)")
+
+        print("\n" + "=" * 70)
+        print("✅ PARSING COMPLETE")
+        print("=" * 70)
+
+    except Exception as e:
+        print(f"\n❌ ERROR: {e}")
+        import traceback
+
+        traceback.print_exc()
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()
