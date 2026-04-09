@@ -15,16 +15,20 @@ Key Features:
 import os
 from dataclasses import dataclass
 
+from dotenv import load_dotenv
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 from src.core.logging_config import get_logger
 from src.ingestion.parsers.base import PageContent, ParsedDocument
 
+# Load environment variables from .env file
+load_dotenv()
+
 logger = get_logger(__name__)
 
 # Configuration from environment variables with sensible defaults
-CHUNK_SIZE = int(os.getenv("CHUNK_SIZE", "512"))
-CHUNK_OVERLAP = int(os.getenv("CHUNK_OVERLAP", "64"))
+CHUNK_SIZE = int(os.getenv("CHUNK_SIZE", "1024"))
+CHUNK_OVERLAP = int(os.getenv("CHUNK_OVERLAP", "128"))
 
 
 @dataclass
@@ -152,14 +156,14 @@ class DocumentChunker:
         # Concatenate all page texts (preserves natural page boundaries)
         full_text = "\n\n".join(page.text for page in non_empty_pages)
 
-        # Split text into chunks
-        raw_chunks = self.text_splitter.split_text(full_text)
+        # Split text into chunks with position tracking
+        raw_chunks = self.text_splitter.create_documents([full_text])
 
         # Create ChunkData objects with metadata
         chunks = []
-        for idx, chunk_text in enumerate(raw_chunks):
-            # Find chunk position in full_text
-            chunk_start = full_text.find(chunk_text)
+        for idx, chunk_doc in enumerate(raw_chunks):
+            # Use LangChain's tracked start_index instead of find()
+            chunk_start = chunk_doc.metadata.get("start_index", 0)
 
             # Assign page number based on chunk start position
             page_num = self._find_page_for_position(chunk_start, page_map)
@@ -169,7 +173,7 @@ class DocumentChunker:
 
             chunks.append(
                 ChunkData(
-                    text=chunk_text,
+                    text=chunk_doc.page_content,
                     page=page_num,
                     section_title=section_title,
                     chunk_index=idx,
@@ -334,7 +338,7 @@ def main() -> None:
     # Step 2: Chunk document
     print("\nStep 2: Chunking document...")
     chunk_start = time.time()
-    chunker = DocumentChunker(chunk_size=512, chunk_overlap=64)
+    chunker = DocumentChunker()
     chunks = chunker.chunk(parsed_doc)
     chunk_time = time.time() - chunk_start
 
