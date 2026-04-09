@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
-from src.ingestion.parsers.base import DocumentMetadata, PageContent, ParsedDocument
+from src.ingestion.parsers.base import PageContent, ParsedDocument
 from src.ingestion.parsers.docx_parser import CHARS_PER_PAGE, DOCXParser
 from src.ingestion.parsers.exceptions import CorruptedFileError, UnsupportedFileTypeError
 
