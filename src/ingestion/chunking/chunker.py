@@ -99,8 +99,16 @@ class DocumentChunker:
             chunk_size=chunk_size,
             chunk_overlap=chunk_overlap,
             length_function=len,
-            add_start_index=True,  # Track position in original text
-            strip_whitespace=True,
+            separators=[
+                r"\n\n",
+                r"(?<=[.?!])\s+",
+                r" ",
+                r""
+            ],
+            is_separator_regex=True,
+            add_start_index=True,
+            keep_separator=True,
+            strip_whitespace=False,
         )
 
         logger.info(
@@ -147,14 +155,10 @@ class DocumentChunker:
             logger.warning("Document has no non-empty pages, returning empty chunk list")
             return []
 
-        # Build page position map: char_offset -> page_number
-        page_map = self._build_page_map(non_empty_pages)
+        page_map, heading_map = self._build_maps(non_empty_pages)
 
-        # Build heading position map: char_offset -> section_title
-        heading_map = self._build_heading_map(non_empty_pages)
-
-        # Concatenate all page texts (preserves natural page boundaries)
-        full_text = "\n\n".join(page.text for page in non_empty_pages)
+        # Concatenate all page texts
+        full_text = " ".join(page.text for page in non_empty_pages)
 
         # Split text into chunks with position tracking
         raw_chunks = self.text_splitter.create_documents([full_text])
@@ -173,7 +177,7 @@ class DocumentChunker:
 
             chunks.append(
                 ChunkData(
-                    text=chunk_doc.page_content,
+                    text=chunk_doc.page_content.strip(),
                     page=page_num,
                     section_title=section_title,
                     chunk_index=idx,
@@ -190,45 +194,25 @@ class DocumentChunker:
 
         return chunks
 
-    def _build_page_map(self, pages: list[PageContent]) -> list[tuple[int, int]]:
+    def _build_maps(self, pages: list[PageContent]) -> tuple[list[tuple[int, int]], list[tuple[int, str]]]:
         """
-        Build a map of character positions to page numbers.
-
-        Returns:
-            List of (char_offset, page_number) tuples sorted by offset
+        Build maps of character positions to page numbers and character positions to section headings.
         """
         page_map = []
-        current_offset = 0
-
-        for page in pages:
-            page_map.append((current_offset, page.page_number))
-            # +2 for "\n\n" separator between pages
-            current_offset += len(page.text) + 2
-
-        return page_map
-
-    def _build_heading_map(self, pages: list[PageContent]) -> list[tuple[int, str]]:
-        """
-        Build a map of character positions to section headings.
-
-        For each heading, records its approximate position in the concatenated text.
-        Headings are associated with the start of their page.
-
-        Returns:
-            List of (char_offset, heading_text) tuples sorted by offset
-        """
         heading_map = []
         current_offset = 0
 
         for page in pages:
+            page_map.append((current_offset, page.page_number))
+
             if page.headings:
-                # Associate all headings on this page with page start position
                 for heading in page.headings:
                     heading_map.append((current_offset, heading))
 
-            current_offset += len(page.text) + 2
+            # + 1 for " " in " ".join(page.text for page in non_empty_pages)
+            current_offset += len(page.text) + 1
 
-        return heading_map
+        return page_map, heading_map
 
     def _find_page_for_position(self, position: int, page_map: list[tuple[int, int]]) -> int | None:
         """

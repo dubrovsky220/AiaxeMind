@@ -19,7 +19,7 @@ import logging
 import sys
 
 try:
-    from pythonjsonlogger import jsonlogger  # type: ignore[import-not-found]
+    from pythonjsonlogger.json import jsonlogger  # type: ignore
 except ImportError:
     jsonlogger = None  # Fallback if package isn't installed
 

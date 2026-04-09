@@ -72,7 +72,7 @@ class TestParserFactory:
         """Test parser selection is case-insensitive."""
         parser_lower = factory.get_parser(Path("document.pdf"))
         parser_upper = factory.get_parser(Path("DOCUMENT.PDF"))
-        assert type(parser_lower) == type(parser_upper)
+        assert type(parser_lower) is type(parser_upper)
 
     @patch("src.ingestion.parsers.factory.PDFParser")
     def test_parse_delegates_to_parser(
