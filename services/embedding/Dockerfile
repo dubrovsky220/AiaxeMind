@@ -11,9 +11,11 @@ RUN --mount=type=cache,target=/root/.cache/pip \
     fastapi==0.135.3 \
     uvicorn[standard]==0.43.0 \
     sentence-transformers==5.3.0 \
+    python-json-logger==3.2.1 \
     torch==2.11.0 --extra-index-url https://download.pytorch.org/whl/cpu
 
 COPY app.py /app/app.py
+COPY logging_config.py /app/logging_config.py
 
 ENV PORT=8001
 ENV PYTHONUNBUFFERED=1
