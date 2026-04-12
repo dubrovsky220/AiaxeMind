@@ -49,6 +49,7 @@ Usage:
 import os
 import uuid
 from dataclasses import dataclass
+from typing import Any
 
 from qdrant_client import QdrantClient
 from qdrant_client.models import (
@@ -164,7 +165,9 @@ class QdrantVectorStore:
                 "Failed to initialize Qdrant client",
                 extra={"url": self.url, "error": str(e)},
             )
-            raise VectorStoreConnectionError(url=self.url, original_error=e)
+            raise VectorStoreConnectionError(
+                url=self.url or "http://localhost:6333", original_error=e
+            )
 
         # Ensure collection exists
         self._ensure_collection()
@@ -194,9 +197,7 @@ class QdrantVectorStore:
             # Create collection with cosine distance metric
             self.client.create_collection(
                 collection_name=self.collection_name,
-                vectors_config=VectorParams(
-                    size=self.vector_size, distance=Distance.COSINE
-                ),
+                vectors_config=VectorParams(size=self.vector_size, distance=Distance.COSINE),
             )
 
             logger.info(
@@ -219,9 +220,7 @@ class QdrantVectorStore:
                 original_error=e,
             )
 
-    def upsert_chunks(
-        self, chunks: list[dict], embeddings: list[list[float]]
-    ) -> None:
+    def upsert_chunks(self, chunks: list[dict[str, Any]], embeddings: list[list[float]]) -> None:
         """
         Upsert chunk embeddings with metadata to Qdrant.
 
@@ -383,26 +382,24 @@ class QdrantVectorStore:
         try:
             # Build workspace filter
             workspace_filter = Filter(
-                must=[
-                    FieldCondition(
-                        key="workspace_id", match=MatchValue(value=str(workspace_id))
-                    )
-                ]
+                must=[FieldCondition(key="workspace_id", match=MatchValue(value=str(workspace_id)))]
             )
 
-            # Perform search
-            search_results = self.client.search(
+            # Perform search using query_points
+            search_results = self.client.query_points(
                 collection_name=self.collection_name,
-                query_vector=query_embedding,
+                query=query_embedding,
                 query_filter=workspace_filter,
                 limit=limit,
                 score_threshold=score_threshold,
-            )
+            ).points
 
             # Convert to SearchResult objects
             results = []
             for hit in search_results:
                 payload = hit.payload
+                if payload is None:
+                    continue
                 result = SearchResult(
                     chunk_id=uuid.UUID(payload["chunk_id"]),
                     document_id=uuid.UUID(payload["document_id"]),
@@ -476,11 +473,7 @@ class QdrantVectorStore:
         try:
             # Delete points with matching document_id
             delete_filter = Filter(
-                must=[
-                    FieldCondition(
-                        key="document_id", match=MatchValue(value=str(document_id))
-                    )
-                ]
+                must=[FieldCondition(key="document_id", match=MatchValue(value=str(document_id)))]
             )
 
             result = self.client.delete(
@@ -493,7 +486,9 @@ class QdrantVectorStore:
                 extra={
                     "collection": self.collection_name,
                     "document_id": str(document_id),
-                    "operation_id": result.operation_id if hasattr(result, 'operation_id') else None,
+                    "operation_id": result.operation_id
+                    if hasattr(result, "operation_id")
+                    else None,
                 },
             )
 
@@ -538,11 +533,7 @@ class QdrantVectorStore:
         try:
             # Delete points with matching workspace_id
             delete_filter = Filter(
-                must=[
-                    FieldCondition(
-                        key="workspace_id", match=MatchValue(value=str(workspace_id))
-                    )
-                ]
+                must=[FieldCondition(key="workspace_id", match=MatchValue(value=str(workspace_id)))]
             )
 
             result = self.client.delete(
@@ -554,7 +545,9 @@ class QdrantVectorStore:
                 extra={
                     "collection": self.collection_name,
                     "workspace_id": str(workspace_id),
-                    "operation_id": result.operation_id if hasattr(result, 'operation_id') else None,
+                    "operation_id": result.operation_id
+                    if hasattr(result, "operation_id")
+                    else None,
                 },
             )
 
@@ -575,7 +568,7 @@ class QdrantVectorStore:
                 original_error=e,
             )
 
-    def get_collection_info(self) -> dict:
+    def get_collection_info(self) -> dict[str, Any]:
         """
         Get collection statistics and configuration.
 
@@ -598,14 +591,33 @@ class QdrantVectorStore:
             print(f"Collection has {info['points_count']} chunks")
         """
         try:
-            collection_info = self.client.get_collection(
-                collection_name=self.collection_name
-            )
+            collection_info = self.client.get_collection(collection_name=self.collection_name)
+
+            # Handle both single vector and named vectors config
+            vectors_config = collection_info.config.params.vectors
+            vector_params: VectorParams
+            if isinstance(vectors_config, dict):
+                # Named vectors - use first vector config
+                first_vector = next(iter(vectors_config.values()))
+                if first_vector is None:
+                    raise VectorStoreOperationError(
+                        operation="get_collection_info",
+                        details="Vector configuration is missing",
+                    )
+                vector_params = first_vector
+            else:
+                # Single vector config
+                if vectors_config is None:
+                    raise VectorStoreOperationError(
+                        operation="get_collection_info",
+                        details="Vector configuration is missing",
+                    )
+                vector_params = vectors_config
 
             info = {
                 "name": self.collection_name,
-                "vector_size": collection_info.config.params.vectors.size,
-                "distance": collection_info.config.params.vectors.distance.name,
+                "vector_size": vector_params.size,
+                "distance": vector_params.distance.name,
                 "points_count": collection_info.points_count,
                 "status": collection_info.status.name,
             }
@@ -726,9 +738,7 @@ def main() -> None:
     # Search without threshold
     print("Step 5: Searching without score threshold...")
     query_embedding = [0.15] * 384
-    results = store.search(
-        query_embedding=query_embedding, workspace_id=workspace_id, limit=5
-    )
+    results = store.search(query_embedding=query_embedding, workspace_id=workspace_id, limit=5)
     print(f"✓ Found {len(results)} results:")
     for i, result in enumerate(results, 1):
         print(f"  {i}. Score: {result.score:.4f} | Page: {result.page} | {result.text[:60]}...")
