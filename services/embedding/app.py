@@ -13,15 +13,15 @@ Endpoints:
 
 
 import os
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from typing import Literal, Optional
+from typing import Literal
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
+from logging_config import get_logger, setup_logging
 from pydantic import BaseModel, Field
 from sentence_transformers import SentenceTransformer
-
-from logging_config import get_logger, setup_logging
 
 # Load .env file if it exists (no-op in Docker where env vars are injected directly)
 load_dotenv()
@@ -42,7 +42,7 @@ logger = get_logger(__name__)
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Manage the embedding service lifecycle: load model on startup, cleanup on shutdown.
 
     The SentenceTransformer model is loaded once at startup and stored in
@@ -82,11 +82,11 @@ class EmbeddingRequest(BaseModel):
         ...,
         examples=[["What is machine learning?", "It is a subset of AI."]],
     )
-    prefix_type: Optional[Literal["query", "passage"]] = Field(
+    prefix_type: Literal["query", "passage"] | None = Field(
         default=None,
         description='Prefix type for E5 models ("query" or "passage").',
     )
-    batch_size: Optional[int] = Field(
+    batch_size: int | None = Field(
         default=None,
         ge=1,
         le=256,
@@ -115,7 +115,7 @@ class EmbeddingResponse(BaseModel):
 # ---------------------------------------------------------------------------
 
 
-def _get_model(app: FastAPI):
+def _get_model(app: FastAPI) -> SentenceTransformer:
     """Return the loaded model from app state, or raise HTTP 503."""
     model = getattr(app.state, "model", None)
     if model is None:
