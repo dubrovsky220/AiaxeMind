@@ -21,7 +21,6 @@ import uuid
 import pytest
 from dotenv import load_dotenv
 
-from src.generation.exceptions import LLMInvalidRequestError
 from src.generation.models import ContextChunk, GenerationRequest
 from src.generation.service import LLMService
 

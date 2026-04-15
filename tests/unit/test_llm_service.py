@@ -2,9 +2,8 @@
 Unit tests for LLMService with mocked HTTP client.
 """
 
-import json
 import uuid
-from unittest.mock import AsyncMock, Mock, patch
+from unittest.mock import AsyncMock, Mock
 
 import httpx
 import pytest

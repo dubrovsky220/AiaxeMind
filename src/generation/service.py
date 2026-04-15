@@ -39,7 +39,7 @@ Usage:
 import json
 import os
 import types
-from typing import AsyncGenerator
+from collections.abc import AsyncGenerator
 
 import httpx
 from tenacity import (
@@ -508,10 +508,10 @@ async def main() -> None:
     """
     import uuid
 
+    from dotenv import load_dotenv
+
     from src.core.logging_config import setup_logging
     from src.generation.models import ContextChunk
-
-    from dotenv import load_dotenv
 
     load_dotenv()
 
@@ -600,7 +600,7 @@ async def main() -> None:
         )
 
         response_no_context = await service.generate(request_no_context)
-        print(f"✓ Answer with no context:")
+        print("✓ Answer with no context:")
         print(f"  {response_no_context.answer[:200]}...\n")
 
     print("=" * 80)

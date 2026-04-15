@@ -51,7 +51,6 @@ from src.generation.models import (
 )
 from src.generation.service import LLMService
 
-
 __all__ = [
     # Service
     "LLMService",
