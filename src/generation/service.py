@@ -50,6 +50,11 @@ from tenacity import (
 )
 
 from src.core.logging_config import get_logger
+from src.generation.citations import (
+    build_sources_metadata,
+    has_citations,
+    validate_citation_numbers,
+)
 from src.generation.exceptions import (
     LLMAPIError,
     LLMConnectionError,
@@ -256,6 +261,11 @@ class LLMService:
             completion_tokens = usage.get("completion_tokens", 0)
             total_tokens = usage.get("total_tokens", 0)
 
+            # Validate citations and build source metadata
+            citations_present = has_citations(answer)
+            citations_valid = validate_citation_numbers(answer, len(request.context_chunks))
+            sources = build_sources_metadata(request.context_chunks)
+
             logger.info(
                 "Answer generated successfully",
                 extra={
@@ -265,6 +275,9 @@ class LLMService:
                     "completion_tokens": completion_tokens,
                     "total_tokens": total_tokens,
                     "answer_length": len(answer),
+                    "has_citations": citations_present,
+                    "citations_valid": citations_valid,
+                    "num_sources": len(sources),
                 },
             )
 
@@ -275,6 +288,7 @@ class LLMService:
                 completion_tokens=completion_tokens,
                 total_tokens=total_tokens,
                 cost_usd=None,
+                sources=sources,
             )
 
         except httpx.TimeoutException as e:
@@ -435,6 +449,13 @@ class LLMService:
                             completion_tokens = usage.get("completion_tokens", 0)
                             total_tokens = usage.get("total_tokens", 0)
 
+                            # Validate citations and build source metadata
+                            citations_present = has_citations(full_answer)
+                            citations_valid = validate_citation_numbers(
+                                full_answer, len(request.context_chunks)
+                            )
+                            sources = build_sources_metadata(request.context_chunks)
+
                             logger.info(
                                 "Streaming answer generated successfully",
                                 extra={
@@ -444,10 +465,13 @@ class LLMService:
                                     "completion_tokens": completion_tokens,
                                     "total_tokens": total_tokens,
                                     "answer_length": len(full_answer),
+                                    "has_citations": citations_present,
+                                    "citations_valid": citations_valid,
+                                    "num_sources": len(sources),
                                 },
                             )
 
-                            # Yield final chunk with metadata
+                            # Yield final chunk with metadata and sources
                             yield StreamChunk(
                                 content="",
                                 done=True,
@@ -456,6 +480,7 @@ class LLMService:
                                 completion_tokens=completion_tokens,
                                 total_tokens=total_tokens,
                                 cost_usd=None,
+                                sources=sources,
                             )
 
                     except json.JSONDecodeError:

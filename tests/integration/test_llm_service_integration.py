@@ -102,6 +102,16 @@ class TestLLMServiceIntegrationBasic:
             # Verify citations (should include [1] or [2])
             assert "[1]" in response.answer or "[2]" in response.answer
 
+            # Verify sources metadata
+            assert response.sources is not None
+            assert len(response.sources) == 2
+            assert response.sources[0]["id"] == 1
+            assert response.sources[0]["filename"] == "ml_intro.pdf"
+            assert response.sources[0]["page"] == 1
+            assert response.sources[0]["score"] == 0.95
+            assert "chunk_text" in response.sources[0]
+            assert response.sources[1]["id"] == 2
+
     @pytest.mark.asyncio
     async def test_generate_without_context(self, api_key, workspace_id):
         """Test generation without context (general knowledge)."""
@@ -122,7 +132,18 @@ class TestLLMServiceIntegrationBasic:
 
             # Should mention lack of context or refuse to answer
             answer_lower = response.answer.lower()
-            assert "context" in answer_lower or "no context" in answer_lower or "not" in answer_lower
+            assert (
+                "context" in answer_lower
+                or "no context" in answer_lower
+                or "not" in answer_lower
+                or "don't contain" in answer_lower
+                or "doesn't contain" in answer_lower
+                or "materials" in answer_lower
+            )
+
+            # Verify sources is empty list
+            assert response.sources is not None
+            assert len(response.sources) == 0
 
     @pytest.mark.asyncio
     async def test_generate_stream_with_context(self, api_key, workspace_id, sample_context_chunks):
@@ -168,6 +189,13 @@ class TestLLMServiceIntegrationBasic:
                 keyword in answer_lower
                 for keyword in ["deep learning", "neural network", "layer", "learning"]
             )
+
+            # Verify sources in final chunk
+            assert final_chunk.sources is not None
+            assert len(final_chunk.sources) == 2
+            assert final_chunk.sources[0]["id"] == 1
+            assert final_chunk.sources[0]["filename"] == "ml_intro.pdf"
+            assert final_chunk.sources[1]["id"] == 2
 
 
 class TestLLMServiceIntegrationEdgeCases:
