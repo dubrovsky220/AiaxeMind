@@ -59,6 +59,7 @@ class GenerationResponse(BaseModel):
         completion_tokens: Number of tokens in completion
         total_tokens: Total tokens used
         cost_usd: Estimated cost in USD (None if not available)
+        sources: Source metadata array with citation information
     """
 
     answer: str
@@ -67,6 +68,7 @@ class GenerationResponse(BaseModel):
     completion_tokens: int
     total_tokens: int
     cost_usd: float | None = None
+    sources: list[dict] | None = None
 
 
 class StreamChunk(BaseModel):
@@ -81,6 +83,7 @@ class StreamChunk(BaseModel):
         completion_tokens: Completion tokens (only in final chunk)
         total_tokens: Total tokens (only in final chunk)
         cost_usd: Estimated cost in USD (only in final chunk, None if not available)
+        sources: Source metadata array (only in final chunk)
     """
 
     content: str = ""
@@ -90,3 +93,4 @@ class StreamChunk(BaseModel):
     completion_tokens: int | None = None
     total_tokens: int | None = None
     cost_usd: float | None = None
+    sources: list[dict] | None = None
